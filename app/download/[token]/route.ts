@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       access_grants (
         id,
         email,
+        customer_name,
         trx_id,
         ebook_id,
         ebooks (
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const watermarkedPdf = await applyWatermark({
     pdfBuffer: masterArrayBuffer,
     email: grant.email,
-    orderId: grant.trx_id ?? undefined,
+    name: grant.customer_name ?? undefined,
   });
 
   await supabaseAdmin

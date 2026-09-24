@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
         const ebookId = await findOrCreateEbook(item.title);
         const grant = await createGrantWithToken({
           email: details.customer.email,
+          customerName: details.customer.name,
           ebookId,
           source: 'lynk_webhook',
           trxId: details.refId === 'unknown' ? undefined : details.refId,

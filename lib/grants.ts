@@ -49,8 +49,9 @@ export async function createGrantWithToken(params: {
   ebookId: string;
   source: 'lynk_webhook' | 'manual_admin';
   trxId?: string;
+  customerName?: string;
 }): Promise<GrantResult> {
-  const { email, ebookId, source, trxId } = params;
+  const { email, ebookId, source, trxId, customerName } = params;
 
   if (trxId) {
     const { data: existingGrant } = await supabaseAdmin
@@ -60,6 +61,13 @@ export async function createGrantWithToken(params: {
       .maybeSingle();
 
     if (existingGrant) {
+      if (customerName) {
+        await supabaseAdmin
+          .from('access_grants')
+          .update({ customer_name: customerName })
+          .eq('id', existingGrant.id);
+      }
+
       const { data: existingToken } = await supabaseAdmin
         .from('magic_tokens')
         .select('token')
@@ -87,6 +95,7 @@ export async function createGrantWithToken(params: {
       email,
       source,
       trx_id: trxId ?? null,
+      customer_name: customerName ?? null,
     })
     .select('id')
     .single();
