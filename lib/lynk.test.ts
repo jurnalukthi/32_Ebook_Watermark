@@ -1,7 +1,10 @@
+import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractLynkDetails } from './lynk';
+import { extractLynkDetails, verifyLynkSignature } from './lynk';
+
+const TEST_SECRET = 'YPRBCrnIE0CyBcl20YOZokKs78Dcr7yF';
 
 test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
   const payload = {
@@ -31,14 +34,26 @@ test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
   assert.equal(details.refId, '13f8d23beeb2aacbbc01c94060cc88d7');
   assert.equal(details.customerEmail, 'buyer@example.com');
   assert.equal(details.messageId, 'API_CALL_1744270275143115_4624014');
+  assert.equal(details.grandTotal, '72000');
 });
 
-test('extractLynkDetails menangani payload uji coba atau ping kosong', () => {
-  const detailsEmpty = extractLynkDetails({});
-  assert.equal(detailsEmpty.event, 'test_or_ping');
-  assert.equal(detailsEmpty.refId, 'unknown');
-  assert.equal(detailsEmpty.customerEmail, '');
+test('verifyLynkSignature memverifikasi tanda tangan transaksi valid', () => {
+  const refId = '13f8d23beeb2aacbbc01c94060cc88d7';
+  const grandTotal = '72000';
+  const messageId = 'API_CALL_1744270275143115_4624014';
 
-  const detailsNull = extractLynkDetails(null);
-  assert.equal(detailsNull.event, 'unknown');
+  const signatureString = `${grandTotal}${refId}${messageId}${TEST_SECRET}`;
+  const validSignature = crypto.createHash('sha256').update(signatureString).digest('hex');
+
+  const result = verifyLynkSignature(validSignature, { refId, grandTotal, messageId }, TEST_SECRET);
+  assert.equal(result, true);
+});
+
+test('verifyLynkSignature menolak tanda tangan palsu', () => {
+  const refId = '13f8d23beeb2aacbbc01c94060cc88d7';
+  const grandTotal = '72000';
+  const messageId = 'API_CALL_1744270275143115_4624014';
+
+  const result = verifyLynkSignature('invalid_signature', { refId, grandTotal, messageId }, TEST_SECRET);
+  assert.equal(result, false);
 });

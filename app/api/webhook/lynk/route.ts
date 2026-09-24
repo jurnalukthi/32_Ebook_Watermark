@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { extractLynkDetails } from '@/lib/lynk';
+import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,12 +15,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const headersRecord: Record<string, string> = {};
-    request.headers.forEach((val, key) => {
-      headersRecord[key] = val;
-    });
+    const signatureHeader =
+      request.headers.get('x-lynk-signature') ??
+      request.headers.get('X-Lynk-Signature');
 
     const details = extractLynkDetails(payload);
+
+    const merchantKey = process.env.LYNK_MERCHANT_KEY;
+
+    if (details.event === 'payment.received' && merchantKey && signatureHeader) {
+      const isValid = verifyLynkSignature(signatureHeader, details, merchantKey);
+
+      if (!isValid) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: 'Verifikasi tanda tangan transaksi Lynk gagal.',
+          },
+          { status: 401 }
+        );
+      }
+    }
 
     console.log('[Lynk Webhook Diterima]', {
       timestamp: new Date().toISOString(),
@@ -28,8 +43,8 @@ export async function POST(request: NextRequest) {
       refId: details.refId,
       customerEmail: details.customerEmail,
       messageId: details.messageId,
-      headers: headersRecord,
-      payload,
+      grandTotal: details.grandTotal,
+      hasSignature: Boolean(signatureHeader),
     });
 
     return NextResponse.json(
