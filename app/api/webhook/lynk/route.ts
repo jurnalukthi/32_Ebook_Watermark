@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { sendMagicLinkEmail } from '@/lib/email';
 import { createGrantWithToken, findOrCreateEbook } from '@/lib/grants';
 import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -92,6 +93,11 @@ export async function POST(request: NextRequest) {
           ? details.items
           : [{ title: 'Ebook Master', uuid: '', qty: 1, price: '0', addons: [] }];
 
+      const baseUrl =
+        process.env.APP_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'https://32-ebook-watermark.vercel.app';
+
       for (const item of targetItems) {
         const ebookId = await findOrCreateEbook(item.title);
         const grant = await createGrantWithToken({
@@ -102,6 +108,14 @@ export async function POST(request: NextRequest) {
         });
 
         issuedGrants.push(grant);
+
+        const downloadUrl = `${baseUrl}/download/${grant.token}`;
+        await sendMagicLinkEmail({
+          to: details.customer.email,
+          recipientName: details.customer.name,
+          ebookTitle: item.title,
+          downloadUrl,
+        });
       }
     }
 
