@@ -1,65 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isLynkPayload, type LynkWebhookPayload } from '@/lib/lynk';
+import { extractLynkDetails } from '@/lib/lynk';
 
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
+    let payload: Record<string, unknown> = {};
 
-    if (!rawBody || rawBody.trim().length === 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: 'Permintaan ditolak karena data muatan kosong.',
-        },
-        { status: 400 }
-      );
+    if (rawBody && rawBody.trim().length > 0) {
+      try {
+        payload = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        payload = { rawText: rawBody };
+      }
     }
 
-    let payload: LynkWebhookPayload;
+    const headersRecord: Record<string, string> = {};
+    request.headers.forEach((val, key) => {
+      headersRecord[key] = val;
+    });
 
-    try {
-      payload = JSON.parse(rawBody) as LynkWebhookPayload;
-    } catch {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: 'Format data bukan JSON yang valid.',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!isLynkPayload(payload)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: 'Permintaan ditolak karena struktur data tidak sesuai spesifikasi Lynk.',
-        },
-        { status: 403 }
-      );
-    }
-
-    const event = payload.event ?? 'unknown';
-    const messageId = payload.data?.message_id ?? 'unknown';
-    const refId = payload.data?.message_data?.refId ?? 'unknown';
-    const customerEmail = payload.data?.message_data?.customer?.email ?? '';
+    const details = extractLynkDetails(payload);
 
     console.log('[Lynk Webhook Diterima]', {
       timestamp: new Date().toISOString(),
-      event,
-      messageId,
-      refId,
-      customerEmail,
+      event: details.event,
+      refId: details.refId,
+      customerEmail: details.customerEmail,
+      messageId: details.messageId,
+      headers: headersRecord,
+      payload,
     });
 
     return NextResponse.json(
       {
         ok: true,
-        message: 'Webhook Lynk berhasil diterima dan diverifikasi.',
+        message: 'Webhook Lynk berhasil diterima.',
         receivedAt: new Date().toISOString(),
-        event,
-        refId,
+        event: details.event,
+        refId: details.refId,
       },
       { status: 200 }
     );
@@ -86,4 +65,17 @@ export async function GET() {
     },
     { status: 200 }
   );
+}
+
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      Allow: 'GET, POST, HEAD, OPTIONS',
+    },
+  });
 }

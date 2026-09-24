@@ -41,24 +41,35 @@ export interface LynkWebhookPayload {
   [key: string]: unknown;
 }
 
-export function isLynkPayload(payload: unknown): boolean {
+export function extractLynkDetails(payload: unknown): {
+  event: string;
+  refId: string;
+  customerEmail: string;
+  messageId: string;
+} {
   if (typeof payload !== 'object' || payload === null) {
-    return false;
+    return {
+      event: 'unknown',
+      refId: 'unknown',
+      customerEmail: '',
+      messageId: 'unknown',
+    };
   }
 
   const record = payload as Record<string, unknown>;
+  const event = typeof record.event === 'string' ? record.event : 'test_or_ping';
+  const data = typeof record.data === 'object' && record.data !== null ? (record.data as Record<string, unknown>) : {};
+  const messageData = typeof data.message_data === 'object' && data.message_data !== null ? (data.message_data as Record<string, unknown>) : {};
+  const customer = typeof messageData.customer === 'object' && messageData.customer !== null ? (messageData.customer as Record<string, unknown>) : {};
 
-  if (typeof record.event !== 'string' || record.event.trim().length === 0) {
-    return false;
-  }
+  const refId = typeof messageData.refId === 'string' ? messageData.refId : typeof record.refId === 'string' ? record.refId : 'unknown';
+  const customerEmail = typeof customer.email === 'string' ? customer.email : typeof record.email === 'string' ? record.email : '';
+  const messageId = typeof data.message_id === 'string' ? data.message_id : typeof record.message_id === 'string' ? record.message_id : 'unknown';
 
-  if (typeof record.data !== 'object' || record.data === null) {
-    return false;
-  }
-
-  const data = record.data as Record<string, unknown>;
-  const hasMessageId = typeof data.message_id === 'string' && data.message_id.trim().length > 0;
-  const hasMessageData = typeof data.message_data === 'object' && data.message_data !== null;
-
-  return hasMessageId || hasMessageData;
+  return {
+    event,
+    refId,
+    customerEmail,
+    messageId,
+  };
 }

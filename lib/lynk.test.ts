@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isLynkPayload } from './lynk';
+import { extractLynkDetails } from './lynk';
 
-test('isLynkPayload menerima struktur data Lynk dengan message_data', () => {
+test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
   const payload = {
     event: 'payment.received',
     data: {
@@ -25,28 +25,20 @@ test('isLynkPayload menerima struktur data Lynk dengan message_data', () => {
     },
   };
 
-  assert.equal(isLynkPayload(payload), true);
+  const details = extractLynkDetails(payload);
+
+  assert.equal(details.event, 'payment.received');
+  assert.equal(details.refId, '13f8d23beeb2aacbbc01c94060cc88d7');
+  assert.equal(details.customerEmail, 'buyer@example.com');
+  assert.equal(details.messageId, 'API_CALL_1744270275143115_4624014');
 });
 
-test('isLynkPayload menerima event uji coba dengan message_id saja', () => {
-  const payload = {
-    event: 'test.ping',
-    data: {
-      message_id: 'TEST_MSG_001',
-    },
-  };
+test('extractLynkDetails menangani payload uji coba atau ping kosong', () => {
+  const detailsEmpty = extractLynkDetails({});
+  assert.equal(detailsEmpty.event, 'test_or_ping');
+  assert.equal(detailsEmpty.refId, 'unknown');
+  assert.equal(detailsEmpty.customerEmail, '');
 
-  assert.equal(isLynkPayload(payload), true);
-});
-
-test('isLynkPayload menolak struktur yang bukan dari Lynk', () => {
-  assert.equal(isLynkPayload(null), false);
-  assert.equal(isLynkPayload(undefined), false);
-  assert.equal(isLynkPayload('string data'), false);
-  assert.equal(isLynkPayload({}), false);
-  assert.equal(isLynkPayload({ event: '' }), false);
-  assert.equal(isLynkPayload({ event: 'payment.received' }), false);
-  assert.equal(isLynkPayload({ event: 'payment.received', data: null }), false);
-  assert.equal(isLynkPayload({ event: 'payment.received', data: {} }), false);
-  assert.equal(isLynkPayload({ sender: 'unknown', amount: 10000 }), false);
+  const detailsNull = extractLynkDetails(null);
+  assert.equal(detailsNull.event, 'unknown');
 });
