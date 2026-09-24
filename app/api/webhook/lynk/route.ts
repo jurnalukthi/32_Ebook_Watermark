@@ -24,7 +24,15 @@ export async function POST(request: NextRequest) {
     const merchantKey = process.env.LYNK_MERCHANT_KEY;
 
     if (details.event === 'payment.received' && merchantKey && signatureHeader) {
-      const isValid = verifyLynkSignature(signatureHeader, details, merchantKey);
+      const isValid = verifyLynkSignature(
+        signatureHeader,
+        {
+          refId: details.refId,
+          grandTotal: details.totals.grandTotal,
+          messageId: details.messageId,
+        },
+        merchantKey
+      );
 
       if (!isValid) {
         return NextResponse.json(
@@ -41,11 +49,17 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       event: details.event,
       refId: details.refId,
-      customerEmail: details.customerEmail,
       messageId: details.messageId,
-      grandTotal: details.grandTotal,
+      createdAt: details.createdAt,
+      customer: details.customer,
       items: details.items,
+      totals: details.totals,
+      shipping: {
+        address: details.shippingAddress,
+        info: details.shippingInfo,
+      },
       hasSignature: Boolean(signatureHeader),
+      rawPayload: payload,
     });
 
     return NextResponse.json(
@@ -55,7 +69,8 @@ export async function POST(request: NextRequest) {
         receivedAt: new Date().toISOString(),
         event: details.event,
         refId: details.refId,
-        itemsCount: details.items.length,
+        customerEmail: details.customer.email,
+        customerName: details.customer.name,
       },
       { status: 200 }
     );
