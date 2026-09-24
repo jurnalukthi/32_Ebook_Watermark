@@ -1,64 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { addWebhookHistoryRecord, getConfiguredWebhookUrl } from '@/lib/webhook-store';
+import { isLynkPayload, type LynkWebhookPayload } from '@/lib/lynk';
 
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
 
-    let payload: any = null;
-
-    try {
-      payload = JSON.parse(rawBody);
-    } catch {
+    if (!rawBody || rawBody.trim().length === 0) {
       return NextResponse.json(
         {
           ok: false,
-          message: 'Invalid JSON payload',
+          message: 'Permintaan ditolak karena data muatan kosong.',
         },
         { status: 400 }
       );
     }
 
-    const eventName = payload?.event ?? 'unknown';
-    const messageId = payload?.data?.message_id ?? payload?.message_id ?? 'unknown';
-    const refId = payload?.data?.message_data?.refId ?? payload?.refId ?? 'unknown';
-    const customerEmail = payload?.data?.message_data?.customer?.email ?? payload?.customer?.email ?? '';
+    let payload: LynkWebhookPayload;
 
-    const record = addWebhookHistoryRecord({
-      urlTarget: getConfiguredWebhookUrl(),
-      eventName,
-      trxId: refId,
-      status: 'success',
+    try {
+      payload = JSON.parse(rawBody) as LynkWebhookPayload;
+    } catch {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: 'Format data bukan JSON yang valid.',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isLynkPayload(payload)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: 'Permintaan ditolak karena struktur data tidak sesuai spesifikasi Lynk.',
+        },
+        { status: 403 }
+      );
+    }
+
+    const event = payload.event ?? 'unknown';
+    const messageId = payload.data?.message_id ?? 'unknown';
+    const refId = payload.data?.message_data?.refId ?? 'unknown';
+    const customerEmail = payload.data?.message_data?.customer?.email ?? '';
+
+    console.log('[Lynk Webhook Diterima]', {
+      timestamp: new Date().toISOString(),
+      event,
+      messageId,
+      refId,
       customerEmail,
-      payload,
     });
-
-    console.log('--- Lynk Webhook Received ---');
-    console.log('Event:', eventName);
-    console.log('Ref ID:', refId);
-    console.log('Message ID:', messageId);
-    console.log('Customer Email:', customerEmail);
-    console.log('History ID:', record.id);
 
     return NextResponse.json(
       {
         ok: true,
-        message: 'Webhook received successfully',
+        message: 'Webhook Lynk berhasil diterima dan diverifikasi.',
         receivedAt: new Date().toISOString(),
-        event: eventName,
-        message_id: messageId,
+        event,
         refId,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Webhook parse error:', error);
+    console.error('[Lynk Webhook Error]', error);
 
     return NextResponse.json(
       {
         ok: false,
-        message: 'Unhandled webhook error',
+        message: 'Terjadi kendala saat memproses webhook.',
       },
       { status: 500 }
     );
@@ -66,10 +77,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    message: 'Lynk webhook endpoint is ready.',
-    url: getConfiguredWebhookUrl(),
-    mode: 'simple-url-receive',
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      message: 'Endpoint penerima webhook Lynk aktif.',
+      url: 'https://32-ebook-watermark.vercel.app/api/webhook/lynk',
+      timestamp: new Date().toISOString(),
+    },
+    { status: 200 }
+  );
 }

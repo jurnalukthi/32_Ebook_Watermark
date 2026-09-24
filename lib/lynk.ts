@@ -1,71 +1,64 @@
-import crypto from 'node:crypto';
-
-function normalizeAmount(amount: unknown): string {
-  if (typeof amount === 'number') {
-    return String(amount);
-  }
-
-  if (typeof amount === 'string') {
-    return amount.replace(/[^0-9.-]/g, '');
-  }
-
-  return '';
+export interface LynkCustomer {
+  email?: string;
+  name?: string;
+  phone?: string;
 }
 
-function extractSignaturePayload(payload: unknown): {
-  refId: string;
-  amount: string;
-  messageId: string;
-} | null {
+export interface LynkTotals {
+  affiliate?: number;
+  convenienceFee?: number;
+  discount?: number;
+  grandTotal?: number | string;
+  totalAddon?: number;
+  totalItem?: number;
+  totalPrice?: number;
+  totalShipping?: number;
+  [key: string]: unknown;
+}
+
+export interface LynkMessageData {
+  createdAt?: string;
+  customer?: LynkCustomer;
+  items?: unknown[];
+  refId?: string;
+  totals?: LynkTotals;
+  [key: string]: unknown;
+}
+
+export interface LynkWebhookData {
+  message_action?: string;
+  message_code?: string;
+  message_desc?: string;
+  message_id?: string;
+  message_title?: string;
+  message_data?: LynkMessageData;
+  [key: string]: unknown;
+}
+
+export interface LynkWebhookPayload {
+  event?: string;
+  data?: LynkWebhookData;
+  [key: string]: unknown;
+}
+
+export function isLynkPayload(payload: unknown): boolean {
   if (typeof payload !== 'object' || payload === null) {
-    return null;
+    return false;
   }
 
   const record = payload as Record<string, unknown>;
-  const data = record.data as Record<string, unknown> | undefined;
-  const messageData = data?.message_data as Record<string, unknown> | undefined;
-  const paymentData = messageData ?? undefined;
-  const totals = paymentData?.totals as Record<string, unknown> | undefined;
-  const refId = typeof paymentData?.refId === 'string' ? paymentData.refId : '';
-  const amount = normalizeAmount(totals?.grandTotal);
-  const messageId = typeof data?.message_id === 'string' ? data.message_id : '';
 
-  if (!refId || !amount || !messageId) {
-    return null;
-  }
-
-  return {
-    refId,
-    amount,
-    messageId,
-  };
-}
-
-export function verifyLynkSignature(
-  payload: unknown,
-  signatureHeader: string | null,
-  secretKey: string
-): boolean {
-  if (!signatureHeader || !secretKey) {
+  if (typeof record.event !== 'string' || record.event.trim().length === 0) {
     return false;
   }
 
-  const signaturePayload = extractSignaturePayload(payload);
-
-  if (!signaturePayload) {
+  if (typeof record.data !== 'object' || record.data === null) {
     return false;
   }
 
-  const { refId, amount, messageId } = signaturePayload;
-  const signatureString = `${amount}${refId}${messageId}${secretKey}`;
-  const expectedSignature = crypto.createHash('sha256').update(signatureString).digest('hex');
+  const data = record.data as Record<string, unknown>;
+  const hasMessageId = typeof data.message_id === 'string' && data.message_id.trim().length > 0;
+  const hasMessageData = typeof data.message_data === 'object' && data.message_data !== null;
 
-  if (expectedSignature.length !== signatureHeader.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature, 'utf8'),
-    Buffer.from(signatureHeader.toLowerCase(), 'utf8')
-  );
+  return hasMessageId || hasMessageData;
 }
