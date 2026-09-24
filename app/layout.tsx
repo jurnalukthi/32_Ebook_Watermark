@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Ebook Watermark',
-  description: 'Webhook Lynk test endpoint',
+  description: 'Private ebook access and watermark delivery system',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

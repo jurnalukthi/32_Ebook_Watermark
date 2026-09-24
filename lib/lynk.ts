@@ -1,34 +1,71 @@
 import crypto from 'node:crypto';
 
-const HASH_ALGORITHM = 'sha256';
-const SIGNATURE_PREFIX = 'sha256=';
+function normalizeAmount(amount: unknown): string {
+  if (typeof amount === 'number') {
+    return String(amount);
+  }
 
-function buildExpectedSignature(rawBody: string, secret: string): string {
-  const digest = crypto.createHmac(HASH_ALGORITHM, secret).update(rawBody).digest('hex');
-  return `${SIGNATURE_PREFIX}${digest}`;
+  if (typeof amount === 'string') {
+    return amount.replace(/[^0-9.-]/g, '');
+  }
+
+  return '';
 }
 
-function hasValidLength(expectedSignature: string, actualSignature: string): boolean {
-  return Buffer.byteLength(expectedSignature, 'utf8') === Buffer.byteLength(actualSignature, 'utf8');
+function extractSignaturePayload(payload: unknown): {
+  refId: string;
+  amount: string;
+  messageId: string;
+} | null {
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const data = record.data as Record<string, unknown> | undefined;
+  const messageData = data?.message_data as Record<string, unknown> | undefined;
+  const paymentData = messageData ?? undefined;
+  const totals = paymentData?.totals as Record<string, unknown> | undefined;
+  const refId = typeof paymentData?.refId === 'string' ? paymentData.refId : '';
+  const amount = normalizeAmount(totals?.grandTotal);
+  const messageId = typeof data?.message_id === 'string' ? data.message_id : '';
+
+  if (!refId || !amount || !messageId) {
+    return null;
+  }
+
+  return {
+    refId,
+    amount,
+    messageId,
+  };
 }
 
 export function verifyLynkSignature(
-  rawBody: string,
+  payload: unknown,
   signatureHeader: string | null,
-  secret: string
+  secretKey: string
 ): boolean {
-  if (!signatureHeader || !signatureHeader.startsWith(SIGNATURE_PREFIX)) {
+  if (!signatureHeader || !secretKey) {
     return false;
   }
 
-  const expectedSignature = buildExpectedSignature(rawBody, secret);
+  const signaturePayload = extractSignaturePayload(payload);
 
-  if (!hasValidLength(expectedSignature, signatureHeader)) {
+  if (!signaturePayload) {
+    return false;
+  }
+
+  const { refId, amount, messageId } = signaturePayload;
+  const signatureString = `${amount}${refId}${messageId}${secretKey}`;
+  const expectedSignature = crypto.createHash('sha256').update(signatureString).digest('hex');
+
+  if (expectedSignature.length !== signatureHeader.length) {
     return false;
   }
 
   return crypto.timingSafeEqual(
     Buffer.from(expectedSignature, 'utf8'),
-    Buffer.from(signatureHeader, 'utf8')
+    Buffer.from(signatureHeader.toLowerCase(), 'utf8')
   );
 }

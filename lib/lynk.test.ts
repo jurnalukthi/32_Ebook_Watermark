@@ -6,21 +6,49 @@ import { verifyLynkSignature } from './lynk';
 
 const TEST_SECRET = 'test-secret';
 
-function createLynkSignature(rawBody: string, secret: string): string {
-  const digest = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  return `sha256=${digest}`;
+function createLynkSignature(payload: unknown, secret: string): string {
+  const record = payload as Record<string, unknown>;
+  const messageData = record.data as Record<string, unknown> | undefined;
+  const paymentData = messageData?.message_data as Record<string, unknown> | undefined;
+  const totals = paymentData?.totals as Record<string, unknown> | undefined;
+  const amount = String(totals?.grandTotal ?? '0');
+  const refId = String(paymentData?.refId ?? '');
+  const messageId = String(messageData?.message_id ?? '');
+  const signatureString = `${amount}${refId}${messageId}${secret}`;
+
+  return crypto.createHash('sha256').update(signatureString).digest('hex');
 }
 
 test('valid signature is accepted', () => {
-  const rawBody = JSON.stringify({ event: 'payment.success', txid: '123' });
-  const signature = createLynkSignature(rawBody, TEST_SECRET);
+  const payload = {
+    data: {
+      message_id: 'msg_123',
+      message_data: {
+        refId: 'ref_456',
+        totals: {
+          grandTotal: 72000,
+        },
+      },
+    },
+  };
 
-  assert.equal(verifyLynkSignature(rawBody, signature, TEST_SECRET), true);
+  const signature = createLynkSignature(payload, TEST_SECRET);
+
+  assert.equal(verifyLynkSignature(payload, signature, TEST_SECRET), true);
 });
 
 test('invalid signature is rejected', () => {
-  const rawBody = JSON.stringify({ event: 'payment.success', txid: '123' });
-  const signature = 'sha256=invalid';
+  const payload = {
+    data: {
+      message_id: 'msg_123',
+      message_data: {
+        refId: 'ref_456',
+        totals: {
+          grandTotal: 72000,
+        },
+      },
+    },
+  };
 
-  assert.equal(verifyLynkSignature(rawBody, signature, TEST_SECRET), false);
+  assert.equal(verifyLynkSignature(payload, 'invalid', TEST_SECRET), false);
 });

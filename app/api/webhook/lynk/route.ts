@@ -5,12 +5,23 @@ import { verifyLynkSignature } from '@/lib/lynk';
 const WEBHOOK_SIGNATURE_HEADER = 'x-lynk-signature';
 const DEFAULT_WEBHOOK_SECRET = 'dev-local-secret';
 
-const LYNK_WEBHOOK_SECRET = process.env.LYNK_WEBHOOK_SECRET ?? DEFAULT_WEBHOOK_SECRET;
+const MERCHANT_KEY =
+  process.env.LYNK_MERCHANT_KEY ?? process.env.LYNK_WEBHOOK_SECRET ?? DEFAULT_WEBHOOK_SECRET;
 
 type WebhookPayload = {
   event?: string;
-  txid?: string;
-  customer_email?: string;
+  data?: {
+    message_id?: string;
+    message_data?: {
+      refId?: string;
+      customer?: {
+        email?: string;
+      };
+      totals?: {
+        grandTotal?: number | string;
+      };
+    };
+  };
 };
 
 function parseWebhookPayload(rawBody: string): WebhookPayload | null {
@@ -31,17 +42,6 @@ export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
     const signature = request.headers.get(WEBHOOK_SIGNATURE_HEADER);
-
-    if (!verifyLynkSignature(rawBody, signature, LYNK_WEBHOOK_SECRET)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message: 'Invalid Lynk signature',
-        },
-        { status: 401 }
-      );
-    }
-
     const payload = parseWebhookPayload(rawBody);
 
     if (!payload) {
@@ -54,12 +54,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { event, txid, customer_email: customerEmail } = payload;
+    if (!verifyLynkSignature(payload, signature, MERCHANT_KEY)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: 'Invalid Lynk signature',
+        },
+        { status: 401 }
+      );
+    }
+
+    const event = payload.event;
+    const messageId = payload.data?.message_id;
+    const refId = payload.data?.message_data?.refId;
+    const customerEmail = payload.data?.message_data?.customer?.email;
 
     console.log('--- Lynk Webhook Received ---');
     console.log('Signature:', signature);
     console.log('Event:', event);
-    console.log('Txid:', txid);
+    console.log('Ref ID:', refId);
+    console.log('Message ID:', messageId);
     console.log('Customer Email:', customerEmail);
     console.log('Payload:', JSON.stringify(payload, null, 2));
 
@@ -69,8 +83,8 @@ export async function POST(request: NextRequest) {
         message: 'Webhook received successfully',
         receivedAt: new Date().toISOString(),
         event,
-        txid,
-        customer_email: customerEmail,
+        message_id: messageId,
+        refId,
       },
       { status: 200 }
     );
@@ -91,6 +105,6 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     message: 'Lynk webhook endpoint is ready.',
-    envConfigured: Boolean(process.env.LYNK_WEBHOOK_SECRET),
+    envConfigured: Boolean(process.env.LYNK_MERCHANT_KEY || process.env.LYNK_WEBHOOK_SECRET),
   });
 }
