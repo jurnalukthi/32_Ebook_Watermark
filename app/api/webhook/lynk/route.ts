@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createGrantWithToken, findOrCreateEbook } from '@/lib/grants';
 import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
+  let webhookLogId: string | null = null;
+  const targetUrl = request.nextUrl.toString();
+
   try {
     const rawBody = await request.text();
     let payload: Record<string, unknown> = {};
@@ -21,6 +26,23 @@ export async function POST(request: NextRequest) {
 
     const details = extractLynkDetails(payload);
 
+    const { data: logEntry } = await supabaseAdmin
+      .from('webhook_logs')
+      .insert({
+        url_target: targetUrl,
+        event_name: details.event,
+        trx_id: details.refId === 'unknown' ? null : details.refId,
+        customer_email: details.customer.email || null,
+        payload,
+        status: 'received',
+      })
+      .select('id')
+      .single();
+
+    if (logEntry) {
+      webhookLogId = logEntry.id;
+    }
+
     const merchantKey = process.env.LYNK_MERCHANT_KEY;
 
     if (details.event === 'payment.received' && merchantKey && signatureHeader) {
@@ -35,6 +57,13 @@ export async function POST(request: NextRequest) {
       );
 
       if (!isValid) {
+        if (webhookLogId) {
+          await supabaseAdmin
+            .from('webhook_logs')
+            .update({ status: 'failed' })
+            .eq('id', webhookLogId);
+        }
+
         return NextResponse.json(
           {
             ok: false,
@@ -45,37 +74,63 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[Lynk Webhook Diterima]', {
-      timestamp: new Date().toISOString(),
-      event: details.event,
-      refId: details.refId,
-      messageId: details.messageId,
-      createdAt: details.createdAt,
-      customer: details.customer,
-      items: details.items,
-      totals: details.totals,
-      shipping: {
-        address: details.shippingAddress,
-        info: details.shippingInfo,
-      },
-      hasSignature: Boolean(signatureHeader),
-      rawPayload: payload,
-    });
+    const isPaymentSuccess =
+      details.event === 'payment.received' ||
+      details.messageAction === 'SUCCESS' ||
+      details.messageCode === '0';
+
+    const issuedGrants: Array<{
+      ebookId: string;
+      grantId: string;
+      token: string;
+      isNew: boolean;
+    }> = [];
+
+    if (isPaymentSuccess && details.customer.email) {
+      const targetItems =
+        details.items.length > 0
+          ? details.items
+          : [{ title: 'Ebook Master', uuid: '', qty: 1, price: '0', addons: [] }];
+
+      for (const item of targetItems) {
+        const ebookId = await findOrCreateEbook(item.title);
+        const grant = await createGrantWithToken({
+          email: details.customer.email,
+          ebookId,
+          source: 'lynk_webhook',
+          trxId: details.refId === 'unknown' ? undefined : details.refId,
+        });
+
+        issuedGrants.push(grant);
+      }
+    }
+
+    if (webhookLogId) {
+      await supabaseAdmin
+        .from('webhook_logs')
+        .update({ status: 'success' })
+        .eq('id', webhookLogId);
+    }
 
     return NextResponse.json(
       {
         ok: true,
-        message: 'Webhook Lynk berhasil diterima.',
+        message: 'Webhook Lynk berhasil diproses.',
         receivedAt: new Date().toISOString(),
         event: details.event,
         refId: details.refId,
         customerEmail: details.customer.email,
-        customerName: details.customer.name,
+        grants: issuedGrants,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('[Lynk Webhook Error]', error);
+    if (webhookLogId) {
+      await supabaseAdmin
+        .from('webhook_logs')
+        .update({ status: 'failed' })
+        .eq('id', webhookLogId);
+    }
 
     return NextResponse.json(
       {
