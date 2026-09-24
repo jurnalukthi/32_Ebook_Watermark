@@ -6,6 +6,14 @@ export interface LynkCustomer {
   phone?: string;
 }
 
+export interface LynkItem {
+  uuid?: string;
+  title?: string;
+  price?: number | string;
+  qty?: number;
+  [key: string]: unknown;
+}
+
 export interface LynkTotals {
   affiliate?: number;
   convenienceFee?: number;
@@ -21,7 +29,7 @@ export interface LynkTotals {
 export interface LynkMessageData {
   createdAt?: string;
   customer?: LynkCustomer;
-  items?: unknown[];
+  items?: LynkItem[];
   refId?: string;
   totals?: LynkTotals;
   [key: string]: unknown;
@@ -55,12 +63,19 @@ function normalizeAmount(amount: unknown): string {
   return '';
 }
 
+export interface ExtractedLynkItem {
+  uuid: string;
+  title: string;
+  qty: number;
+}
+
 export function extractLynkDetails(payload: unknown): {
   event: string;
   refId: string;
   customerEmail: string;
   messageId: string;
   grandTotal: string;
+  items: ExtractedLynkItem[];
 } {
   if (typeof payload !== 'object' || payload === null) {
     return {
@@ -69,6 +84,7 @@ export function extractLynkDetails(payload: unknown): {
       customerEmail: '',
       messageId: 'unknown',
       grandTotal: '',
+      items: [],
     };
   }
 
@@ -84,12 +100,23 @@ export function extractLynkDetails(payload: unknown): {
   const messageId = typeof data.message_id === 'string' ? data.message_id : typeof record.message_id === 'string' ? record.message_id : 'unknown';
   const grandTotal = normalizeAmount(totals.grandTotal);
 
+  const rawItems = Array.isArray(messageData.items) ? messageData.items : [];
+  const items: ExtractedLynkItem[] = rawItems.map((item) => {
+    const itemObj = typeof item === 'object' && item !== null ? (item as Record<string, unknown>) : {};
+    return {
+      uuid: typeof itemObj.uuid === 'string' ? itemObj.uuid : '',
+      title: typeof itemObj.title === 'string' ? itemObj.title : '',
+      qty: typeof itemObj.qty === 'number' ? itemObj.qty : 1,
+    };
+  });
+
   return {
     event,
     refId,
     customerEmail,
     messageId,
     grandTotal,
+    items,
   };
 }
 

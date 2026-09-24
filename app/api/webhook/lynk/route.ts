@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       customerEmail: details.customerEmail,
       messageId: details.messageId,
       grandTotal: details.grandTotal,
+      items: details.items,
       hasSignature: Boolean(signatureHeader),
     });
 
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         receivedAt: new Date().toISOString(),
         event: details.event,
         refId: details.refId,
+        itemsCount: details.items.length,
       },
       { status: 200 }
     );

@@ -6,7 +6,7 @@ import { extractLynkDetails, verifyLynkSignature } from './lynk';
 
 const TEST_SECRET = 'YPRBCrnIE0CyBcl20YOZokKs78Dcr7yF';
 
-test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
+test('extractLynkDetails mengekstrak data transaksi resmi Lynk beserta daftar item produk', () => {
   const payload = {
     event: 'payment.received',
     data: {
@@ -19,9 +19,17 @@ test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
           name: 'Budi Santoso',
           phone: '08123456789',
         },
+        items: [
+          {
+            uuid: 'prod_ebook_01',
+            title: 'Ebook NextJS Panduan Praktis',
+            qty: 1,
+            price: 50000,
+          },
+        ],
         refId: '13f8d23beeb2aacbbc01c94060cc88d7',
         totals: {
-          grandTotal: 72000,
+          grandTotal: 50000,
         },
       },
       message_id: 'API_CALL_1744270275143115_4624014',
@@ -34,7 +42,10 @@ test('extractLynkDetails mengekstrak data transaksi resmi Lynk', () => {
   assert.equal(details.refId, '13f8d23beeb2aacbbc01c94060cc88d7');
   assert.equal(details.customerEmail, 'buyer@example.com');
   assert.equal(details.messageId, 'API_CALL_1744270275143115_4624014');
-  assert.equal(details.grandTotal, '72000');
+  assert.equal(details.grandTotal, '50000');
+  assert.equal(details.items.length, 1);
+  assert.equal(details.items[0].uuid, 'prod_ebook_01');
+  assert.equal(details.items[0].title, 'Ebook NextJS Panduan Praktis');
 });
 
 test('verifyLynkSignature memverifikasi tanda tangan transaksi valid', () => {
