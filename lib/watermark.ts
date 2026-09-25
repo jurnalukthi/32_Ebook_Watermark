@@ -6,36 +6,50 @@ interface WatermarkOptions {
   name?: string;
 }
 
+const VERTICAL_WATERMARK_MARGIN_RIGHT = 18;
+const VERTICAL_WATERMARK_MARGIN_TOP = 60;
+const VERTICAL_WATERMARK_FONT_SIZE = 10;
+const VERTICAL_WATERMARK_OPACITY = 0.35;
+const VERTICAL_WATERMARK_ROTATION = -90;
+
+const FOOTER_MARGIN_LEFT = 30;
+const FOOTER_MARGIN_BOTTOM = 18;
+const FOOTER_FONT_SIZE = 8;
+const FOOTER_OPACITY = 0.55;
+
 export async function applyWatermark(options: WatermarkOptions): Promise<Uint8Array> {
   const { pdfBuffer, email, name } = options;
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const pages = pdfDoc.getPages();
   const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const mainWatermark = `Eksklusif untuk: ${email}`;
+  const mainWatermark = email;
   const licensedTo = name && name.trim().length > 0 ? name.trim() : email;
   const footerText = `Dilisensikan resmi kepada ${licensedTo} - Jangan disebarluaskan`;
+
+  const watermarkColor = rgb(0.6, 0.6, 0.6);
+  const footerColor = rgb(0.5, 0.5, 0.5);
 
   for (const page of pages) {
     const { width, height } = page.getSize();
 
     page.drawText(mainWatermark, {
-      x: width / 6,
-      y: height / 2,
-      size: 16,
+      x: width - VERTICAL_WATERMARK_MARGIN_RIGHT,
+      y: height - VERTICAL_WATERMARK_MARGIN_TOP,
+      size: VERTICAL_WATERMARK_FONT_SIZE,
       font,
-      color: rgb(0.65, 0.65, 0.65),
-      opacity: 0.22,
-      rotate: degrees(45),
+      color: watermarkColor,
+      opacity: VERTICAL_WATERMARK_OPACITY,
+      rotate: degrees(VERTICAL_WATERMARK_ROTATION),
     });
 
     page.drawText(footerText, {
-      x: 30,
-      y: 18,
-      size: 8,
+      x: FOOTER_MARGIN_LEFT,
+      y: FOOTER_MARGIN_BOTTOM,
+      size: FOOTER_FONT_SIZE,
       font,
-      color: rgb(0.5, 0.5, 0.5),
-      opacity: 0.55,
+      color: footerColor,
+      opacity: FOOTER_OPACITY,
     });
   }
 

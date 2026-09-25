@@ -3,6 +3,8 @@ import { Resend } from 'resend';
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+const DEFAULT_SENDER_EMAIL = 'onboarding@resend.dev';
+
 interface SendMagicLinkOptions {
   to: string;
   recipientName?: string;
@@ -10,15 +12,20 @@ interface SendMagicLinkOptions {
   downloadUrl: string;
 }
 
-export async function sendMagicLinkEmail(options: SendMagicLinkOptions) {
+interface SendEmailResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}
+
+export async function sendMagicLinkEmail(options: SendMagicLinkOptions): Promise<SendEmailResult> {
   const { to, recipientName, ebookTitle, downloadUrl } = options;
 
   if (!resend) {
-    console.warn('[Resend] RESEND_API_KEY belum disetel. Email tidak dikirim.');
     return { success: false, error: 'RESEND_API_KEY belum disetel' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || DEFAULT_SENDER_EMAIL;
   const nameDisplay = recipientName ? `Halo ${recipientName},` : 'Halo,';
 
   const html = `
@@ -53,14 +60,12 @@ export async function sendMagicLinkEmail(options: SendMagicLinkOptions) {
     });
 
     if (error) {
-      console.error('[Resend Error]', error);
       return { success: false, error: error.message };
     }
 
     return { success: true, messageId: data?.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown email error';
-    console.error('[Resend Send Exception]', message);
     return { success: false, error: message };
   }
 }

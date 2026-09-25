@@ -54,15 +54,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const now = new Date();
   const expiresAt = new Date(magicToken.expires_at);
+  const isExpired = now > expiresAt;
+  const isDownloadLimitReached = magicToken.download_count >= magicToken.max_downloads;
 
-  if (now > expiresAt) {
+  if (isExpired) {
     return NextResponse.json(
       { ok: false, message: 'Tautan unduhan telah kedaluwarsa (lebih dari 48 jam).' },
       { status: 410 }
     );
   }
 
-  if (magicToken.download_count >= magicToken.max_downloads) {
+  if (isDownloadLimitReached) {
     return NextResponse.json(
       { ok: false, message: 'Batas maksimum unduhan (5 kali) telah tercapai.' },
       { status: 403 }

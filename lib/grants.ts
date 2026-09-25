@@ -8,6 +8,17 @@ interface GrantResult {
   isNew: boolean;
 }
 
+interface CreateGrantParams {
+  email: string;
+  ebookId: string;
+  source: 'lynk_webhook' | 'manual_admin';
+  trxId?: string;
+  customerName?: string;
+}
+
+const TOKEN_EXPIRY_HOURS = 48;
+const MAX_TOKEN_DOWNLOADS = 5;
+
 export async function findOrCreateEbook(title: string): Promise<string> {
   const cleanTitle = title.trim();
   const slug = cleanTitle
@@ -44,13 +55,7 @@ export async function findOrCreateEbook(title: string): Promise<string> {
   return created.id;
 }
 
-export async function createGrantWithToken(params: {
-  email: string;
-  ebookId: string;
-  source: 'lynk_webhook' | 'manual_admin';
-  trxId?: string;
-  customerName?: string;
-}): Promise<GrantResult> {
+export async function createGrantWithToken(params: CreateGrantParams): Promise<GrantResult> {
   const { email, ebookId, source, trxId, customerName } = params;
 
   if (trxId) {
@@ -105,14 +110,14 @@ export async function createGrantWithToken(params: {
   }
 
   const token = generateMagicToken();
-  const expiresAt = calculateExpiryDate(48);
+  const expiresAt = calculateExpiryDate(TOKEN_EXPIRY_HOURS);
 
   const { error: tokenError } = await supabaseAdmin.from('magic_tokens').insert({
     grant_id: grant.id,
     token,
     expires_at: expiresAt,
     download_count: 0,
-    max_downloads: 5,
+    max_downloads: MAX_TOKEN_DOWNLOADS,
   });
 
   if (tokenError) {
