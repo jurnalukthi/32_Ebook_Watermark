@@ -1,7 +1,6 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { createBrowserSupabaseClient } from '@/lib/supabase-browser';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('jurnalukthi@gmail.com');
@@ -15,23 +14,25 @@ export default function AdminLoginPage() {
     setMessage(null);
     setErrorMessage(null);
 
-    const supabase = createBrowserSupabaseClient();
-    const redirectUrl = `${window.location.origin}/auth/callback?next=/admin`;
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
+      const data = await response.json();
 
-    if (error) {
-      setErrorMessage(error.message);
-    } else {
-      setMessage('Tautan login telah dikirim. Silakan periksa inbox email Anda.');
+      if (!response.ok || !data.ok) {
+        setErrorMessage(data.message || 'Gagal mengirim tautan login.');
+      } else {
+        setMessage('Tautan login telah dikirim. Silakan periksa inbox email Anda.');
+      }
+    } catch {
+      setErrorMessage('Terjadi kendala jaringan saat menghubungi server.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   return (
