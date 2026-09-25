@@ -6,10 +6,10 @@ interface WatermarkOptions {
   name?: string;
 }
 
-const VERTICAL_WATERMARK_MARGIN_RIGHT = 65;
+const VERTICAL_WATERMARK_X_RATIO = 0.8;
 const VERTICAL_WATERMARK_MARGIN_TOP = 80;
 const VERTICAL_WATERMARK_FONT_SIZE = 11;
-const VERTICAL_WATERMARK_OPACITY = 0.28;
+const VERTICAL_WATERMARK_OPACITY = 0.25;
 const VERTICAL_WATERMARK_ROTATION = -90;
 
 const FOOTER_MARGIN_LEFT = 30;
@@ -34,7 +34,7 @@ export async function applyWatermark(options: WatermarkOptions): Promise<Uint8Ar
     const { width, height } = page.getSize();
 
     page.drawText(mainWatermark, {
-      x: width - VERTICAL_WATERMARK_MARGIN_RIGHT,
+      x: width * VERTICAL_WATERMARK_X_RATIO,
       y: height - VERTICAL_WATERMARK_MARGIN_TOP,
       size: VERTICAL_WATERMARK_FONT_SIZE,
       font,
