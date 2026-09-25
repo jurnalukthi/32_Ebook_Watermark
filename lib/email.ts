@@ -1,9 +1,18 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const gmailUser = process.env.GMAIL_USER;
+const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
 
-const DEFAULT_SENDER_EMAIL = 'onboarding@resend.dev';
+const transporter =
+  gmailUser && gmailAppPassword
+    ? nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: gmailUser,
+          pass: gmailAppPassword.replace(/\s+/g, ''),
+        },
+      })
+    : null;
 
 interface SendMagicLinkOptions {
   to: string;
@@ -21,11 +30,10 @@ interface SendEmailResult {
 export async function sendMagicLinkEmail(options: SendMagicLinkOptions): Promise<SendEmailResult> {
   const { to, recipientName, ebookTitle, downloadUrl } = options;
 
-  if (!resend) {
-    return { success: false, error: 'RESEND_API_KEY belum disetel' };
+  if (!transporter || !gmailUser) {
+    return { success: false, error: 'Gmail SMTP belum dikonfigurasi (GMAIL_USER / GMAIL_APP_PASSWORD kosong).' };
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || DEFAULT_SENDER_EMAIL;
   const nameDisplay = recipientName ? `Halo ${recipientName},` : 'Halo,';
 
   const html = `
@@ -52,20 +60,16 @@ export async function sendMagicLinkEmail(options: SendMagicLinkOptions): Promise
   `;
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: fromEmail,
+    const info = await transporter.sendMail({
+      from: `"Ebook Delivery" <${gmailUser}>`,
       to,
       subject: `Akses Unduhan: ${ebookTitle}`,
       html,
     });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, messageId: data?.id };
+    return { success: true, messageId: info.messageId };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown email error';
+    const message = err instanceof Error ? err.message : 'Gagal mengirim email via Gmail SMTP.';
     return { success: false, error: message };
   }
 }
