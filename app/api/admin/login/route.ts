@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ADMIN_EMAIL } from '@/lib/constants';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-
-const ADMIN_EMAIL = 'jurnalukthi@gmail.com';
 
 export async function POST(request: NextRequest) {
   try {

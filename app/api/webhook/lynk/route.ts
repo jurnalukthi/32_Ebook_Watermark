@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { DEFAULT_APP_URL } from '@/lib/constants';
 import { sendMagicLinkEmail } from '@/lib/email';
 import { createGrantWithToken, findOrCreateEbook } from '@/lib/grants';
 import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
       const baseUrl =
         process.env.APP_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
-        'https://32-ebook-watermark.vercel.app';
+        DEFAULT_APP_URL;
 
       for (const item of targetItems) {
         const itemAmount =
@@ -168,7 +169,7 @@ export async function GET() {
     {
       ok: true,
       message: 'Endpoint penerima webhook Lynk aktif.',
-      url: 'https://32-ebook-watermark.vercel.app/api/webhook/lynk',
+      url: `${DEFAULT_APP_URL}/api/webhook/lynk`,
       timestamp: new Date().toISOString(),
     },
     { status: 200 }

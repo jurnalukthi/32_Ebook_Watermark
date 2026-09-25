@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { STORAGE_BUCKET_MASTER } from '@/lib/constants';
 import { supabaseAdmin } from '@/lib/supabase';
 import { applyWatermark } from '@/lib/watermark';
 
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const filePath = ebook?.file_path || 'Pytorch.pdf';
 
   const { data: fileData, error: fileError } = await supabaseAdmin.storage
-    .from('ebooks-master')
+    .from(STORAGE_BUCKET_MASTER)
     .download(filePath);
 
   if (fileError || !fileData) {

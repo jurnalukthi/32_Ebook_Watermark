@@ -2,10 +2,11 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ADMIN_EMAIL } from '@/lib/constants';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('jurnalukthi@gmail.com');
+  const [email, setEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -42,154 +43,212 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main
+    <div
       style={{
-        width: '100%',
-        maxWidth: 420,
-        margin: '0 auto',
-        padding: '32px 24px',
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+        background: 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%)',
       }}
     >
-      <h1
+      <main
         style={{
-          fontSize: 22,
-          fontWeight: 700,
-          margin: '0 0 8px 0',
-          color: '#111827',
+          width: '100%',
+          maxWidth: 400,
+          backgroundColor: '#ffffff',
+          borderRadius: 14,
+          padding: '36px 28px',
+          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+          border: '1px solid #e2e8f0',
         }}
       >
-        Admin Portal
-      </h1>
-      <p
-        style={{
-          fontSize: 14,
-          color: '#6b7280',
-          margin: '0 0 24px 0',
-          lineHeight: 1.5,
-        }}
-      >
-        Masuk menggunakan kata sandi admin atau kosongkan kata sandi untuk menerima tautan magic link.
-      </p>
-
-      {message && (
-        <div
-          style={{
-            padding: '12px 14px',
-            marginBottom: 20,
-            borderRadius: 6,
-            backgroundColor: '#ecfdf5',
-            color: '#065f46',
-            fontSize: 14,
-            lineHeight: 1.4,
-          }}
-        >
-          {message}
-        </div>
-      )}
-
-      {errorMessage && (
-        <div
-          style={{
-            padding: '12px 14px',
-            marginBottom: 20,
-            borderRadius: 6,
-            backgroundColor: '#fef2f2',
-            color: '#991b1b',
-            fontSize: 14,
-            lineHeight: 1.4,
-          }}
-        >
-          {errorMessage}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <label
-            htmlFor="email"
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div
             style={{
-              display: 'block',
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#374151',
-              marginBottom: 6,
+              width: 48,
+              height: 48,
+              margin: '0 auto 16px',
+              backgroundColor: '#0f172a',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
             }}
           >
-            Email Admin
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              fontSize: 14,
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              outline: 'none',
-            }}
-          />
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+            Portal Admin
+          </h1>
+          <p style={{ fontSize: 14, color: '#64748b', marginTop: 6, lineHeight: 1.5 }}>
+            Masuk untuk mengelola e-book, lisensi unduhan, dan pelacakan transaksi.
+          </p>
         </div>
 
-        <div>
-          <label
-            htmlFor="password"
+        {message && (
+          <div
             style={{
-              display: 'block',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              padding: '12px 14px',
+              marginBottom: 20,
+              borderRadius: 8,
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              color: '#15803d',
               fontSize: 13,
-              fontWeight: 600,
-              color: '#374151',
-              marginBottom: 6,
+              lineHeight: 1.4,
             }}
           >
-            Kata Sandi
-          </label>
-          <input
-            id="password"
-            type="password"
-            placeholder="Masukkan kata sandi..."
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span>{message}</span>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              padding: '12px 14px',
+              marginBottom: 20,
+              borderRadius: 8,
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#b91c1c',
+              fontSize: 13,
+              lineHeight: 1.4,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div>
+            <label
+              htmlFor="email"
+              style={{
+                display: 'block',
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#334155',
+                marginBottom: 6,
+              }}
+            >
+              Email Administrator
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: '100%',
+                height: 44,
+                padding: '0 14px',
+                fontSize: 14,
+                color: '#0f172a',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: 8,
+                outline: 'none',
+                transition: 'border-color 150ms, box-shadow 150ms',
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label
+                htmlFor="password"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#334155',
+                }}
+              >
+                Kata Sandi
+              </label>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>Opsional</span>
+            </div>
+            <input
+              id="password"
+              type="password"
+              placeholder="Ketik kata sandi akun..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: '100%',
+                height: 44,
+                padding: '0 14px',
+                fontSize: 14,
+                color: '#0f172a',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: 8,
+                outline: 'none',
+                transition: 'border-color 150ms, box-shadow 150ms',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
             style={{
               width: '100%',
-              padding: '10px 12px',
+              height: 44,
               fontSize: 14,
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              outline: 'none',
+              fontWeight: 600,
+              color: '#ffffff',
+              backgroundColor: isSubmitting ? '#94a3b8' : '#0f172a',
+              border: 'none',
+              borderRadius: 8,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              transition: 'background-color 150ms',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
             }}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          style={{
-            width: '100%',
-            padding: '11px',
-            fontSize: 14,
-            fontWeight: 600,
-            color: '#ffffff',
-            backgroundColor: isSubmitting ? '#9ca3af' : '#111827',
-            border: 'none',
-            borderRadius: 6,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {isSubmitting
-            ? 'Memproses...'
-            : password
-            ? 'Masuk (Login)'
-            : 'Kirim Magic Link'}
-        </button>
-      </form>
-    </main>
+          >
+            {isSubmitting ? (
+              'Memproses...'
+            ) : password ? (
+              'Masuk ke Panel'
+            ) : (
+              'Kirim Magic Link Masuk'
+            )}
+          </button>
+        </form>
+      </main>
+    </div>
   );
 }
