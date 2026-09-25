@@ -14,6 +14,7 @@ interface CreateGrantParams {
   source: 'lynk_webhook' | 'manual_admin';
   trxId?: string;
   customerName?: string;
+  amount?: number;
 }
 
 const TOKEN_EXPIRY_HOURS = 48;
@@ -56,7 +57,7 @@ export async function findOrCreateEbook(title: string): Promise<string> {
 }
 
 export async function createGrantWithToken(params: CreateGrantParams): Promise<GrantResult> {
-  const { email, ebookId, source, trxId, customerName } = params;
+  const { email, ebookId, source, trxId, customerName, amount } = params;
 
   if (trxId) {
     const { data: existingGrant } = await supabaseAdmin
@@ -66,10 +67,17 @@ export async function createGrantWithToken(params: CreateGrantParams): Promise<G
       .maybeSingle();
 
     if (existingGrant) {
+      const updates: { customer_name?: string; amount?: number } = {};
       if (customerName) {
+        updates.customer_name = customerName;
+      }
+      if (typeof amount === 'number') {
+        updates.amount = amount;
+      }
+      if (Object.keys(updates).length > 0) {
         await supabaseAdmin
           .from('access_grants')
-          .update({ customer_name: customerName })
+          .update(updates)
           .eq('id', existingGrant.id);
       }
 
@@ -101,6 +109,7 @@ export async function createGrantWithToken(params: CreateGrantParams): Promise<G
       source,
       trx_id: trxId ?? null,
       customer_name: customerName ?? null,
+      amount: typeof amount === 'number' ? amount : 0,
     })
     .select('id')
     .single();

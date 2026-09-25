@@ -99,6 +99,11 @@ export async function POST(request: NextRequest) {
         'https://32-ebook-watermark.vercel.app';
 
       for (const item of targetItems) {
+        const itemAmount =
+          Number(item.price) ||
+          (targetItems.length === 1 ? Number(details.totals.grandTotal) : 0) ||
+          0;
+
         const ebookId = await findOrCreateEbook(item.title);
         const grant = await createGrantWithToken({
           email: details.customer.email,
@@ -106,6 +111,7 @@ export async function POST(request: NextRequest) {
           ebookId,
           source: 'lynk_webhook',
           trxId: details.refId === 'unknown' ? undefined : details.refId,
+          amount: itemAmount,
         });
 
         issuedGrants.push(grant);
