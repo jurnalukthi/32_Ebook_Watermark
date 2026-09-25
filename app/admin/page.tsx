@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminActions } from '@/components/admin-actions';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
@@ -304,6 +305,15 @@ export default async function AdminDashboardPage() {
             <div style={{ fontSize: 12, color: '#94a3b8' }}>File master di storage privat</div>
           </div>
         </section>
+
+        <AdminActions
+          ebooks={
+            ebooks?.map((ebook) => ({
+              id: ebook.id,
+              title: ebook.title,
+            })) || []
+          }
+        />
 
         <section
           style={{
