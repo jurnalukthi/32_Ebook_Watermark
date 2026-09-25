@@ -1,9 +1,12 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('jurnalukthi@gmail.com');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -18,15 +21,18 @@ export default function AdminLoginPage() {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password: password || undefined }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        setErrorMessage(data.message || 'Gagal mengirim tautan login.');
+        setErrorMessage(data.message || 'Gagal melakukan login.');
+      } else if (data.redirectTo) {
+        router.push(data.redirectTo);
+        router.refresh();
       } else {
-        setMessage('Tautan login telah dikirim. Silakan periksa inbox email Anda.');
+        setMessage(data.message || 'Tautan login telah dikirim ke email Anda.');
       }
     } catch {
       setErrorMessage('Terjadi kendala jaringan saat menghubungi server.');
@@ -66,7 +72,7 @@ export default function AdminLoginPage() {
           lineHeight: 1.5,
         }}
       >
-        Masukkan email admin untuk menerima tautan masuk satu kali (magic link).
+        Masuk menggunakan kata sandi admin atau kosongkan kata sandi untuk menerima tautan magic link.
       </p>
 
       {message && (
@@ -132,6 +138,36 @@ export default function AdminLoginPage() {
           />
         </div>
 
+        <div>
+          <label
+            htmlFor="password"
+            style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#374151',
+              marginBottom: 6,
+            }}
+          >
+            Kata Sandi
+          </label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Masukkan kata sandi..."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: 14,
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              outline: 'none',
+            }}
+          />
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}
@@ -147,7 +183,11 @@ export default function AdminLoginPage() {
             cursor: isSubmitting ? 'not-allowed' : 'pointer',
           }}
         >
-          {isSubmitting ? 'Mengirim tautan...' : 'Kirim Magic Link'}
+          {isSubmitting
+            ? 'Memproses...'
+            : password
+            ? 'Masuk (Login)'
+            : 'Kirim Magic Link'}
         </button>
       </form>
     </main>

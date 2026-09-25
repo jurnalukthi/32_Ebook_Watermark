@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 const ADMIN_EMAIL = 'jurnalukthi@gmail.com';
 
@@ -7,6 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!email) {
       return NextResponse.json(
@@ -22,10 +23,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = createServerSupabaseClient();
+
+    if (password) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return NextResponse.json(
+          { ok: false, message: error.message },
+          { status: 401 }
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        message: 'Login berhasil.',
+        redirectTo: '/admin',
+      });
+    }
+
     const { origin } = new URL(request.url);
     const redirectUrl = `${origin}/auth/callback?next=/admin`;
 
-    const { error } = await supabaseAdmin.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: redirectUrl,
