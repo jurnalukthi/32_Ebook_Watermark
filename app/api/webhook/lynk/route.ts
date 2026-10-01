@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { DEFAULT_APP_URL } from '@/lib/constants';
 import { sendMagicLinkEmail } from '@/lib/email';
-import { createGrantWithToken, findOrCreateEbook } from '@/lib/grants';
+import { createGrantWithToken, findEbook } from '@/lib/grants';
 import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -100,16 +100,20 @@ export async function POST(request: NextRequest) {
         DEFAULT_APP_URL;
 
       for (const item of targetItems) {
+        const foundEbook = await findEbook(item.title);
+        if (!foundEbook) {
+          continue;
+        }
+
         const itemAmount =
           Number(item.price) ||
           (targetItems.length === 1 ? Number(details.totals.grandTotal) : 0) ||
           0;
 
-        const ebookId = await findOrCreateEbook(item.title);
         const grant = await createGrantWithToken({
           email: details.customer.email,
           customerName: details.customer.name,
-          ebookId,
+          ebookId: foundEbook.id,
           source: 'lynk_webhook',
           trxId: details.refId === 'unknown' ? undefined : details.refId,
           amount: itemAmount,
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
         await sendMagicLinkEmail({
           to: details.customer.email,
           recipientName: details.customer.name,
-          ebookTitle: item.title,
+          ebookTitle: foundEbook.title,
           downloadUrl,
         });
       }

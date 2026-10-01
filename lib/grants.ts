@@ -20,40 +20,38 @@ interface CreateGrantParams {
 const TOKEN_EXPIRY_HOURS = 48;
 const MAX_TOKEN_DOWNLOADS = 5;
 
-export async function findOrCreateEbook(title: string): Promise<string> {
+export async function findEbook(
+  title: string
+): Promise<{ id: string; title: string } | null> {
   const cleanTitle = title.trim();
+  if (!cleanTitle) {
+    return null;
+  }
+
   const slug = cleanTitle
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
-  const { data: existing } = await supabaseAdmin
+  const { data: bySlug } = await supabaseAdmin
     .from('ebooks')
-    .select('id')
+    .select('id, title')
     .eq('slug', slug)
+    .eq('is_active', true)
     .maybeSingle();
 
-  if (existing) {
-    return existing.id;
+  if (bySlug) {
+    return bySlug;
   }
 
-  const { data: created, error } = await supabaseAdmin
+  const { data: byTitle } = await supabaseAdmin
     .from('ebooks')
-    .insert({
-      title: cleanTitle || 'Ebook Master',
-      slug: slug || 'default-ebook',
-      file_path: `ebooks/${slug || 'default'}.pdf`,
-      file_size: 0,
-      is_active: true,
-    })
-    .select('id')
-    .single();
+    .select('id, title')
+    .ilike('title', cleanTitle)
+    .eq('is_active', true)
+    .maybeSingle();
 
-  if (error || !created) {
-    throw new Error(`Gagal membuat ebook: ${error?.message}`);
-  }
-
-  return created.id;
+  return byTitle ?? null;
 }
 
 export async function createGrantWithToken(params: CreateGrantParams): Promise<GrantResult> {
