@@ -17,6 +17,14 @@ interface CreateGrantParams {
   amount?: number;
 }
 
+interface RecordNonWatermarkParams {
+  email: string;
+  source: 'lynk_webhook' | 'manual_admin';
+  trxId?: string;
+  customerName?: string;
+  amount?: number;
+}
+
 const TOKEN_EXPIRY_HOURS = 48;
 const MAX_TOKEN_DOWNLOADS = 5;
 
@@ -137,4 +145,55 @@ export async function createGrantWithToken(params: CreateGrantParams): Promise<G
     ebookId,
     isNew: true,
   };
+}
+
+export async function recordNonWatermarkPurchase(
+  params: RecordNonWatermarkParams
+): Promise<{ grantId: string }> {
+  const { email, source, trxId, customerName, amount } = params;
+
+  if (trxId) {
+    const { data: existingGrant } = await supabaseAdmin
+      .from('access_grants')
+      .select('id')
+      .eq('trx_id', trxId)
+      .maybeSingle();
+
+    if (existingGrant) {
+      const updates: { customer_name?: string; amount?: number } = {};
+      if (customerName) {
+        updates.customer_name = customerName;
+      }
+      if (typeof amount === 'number') {
+        updates.amount = amount;
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabaseAdmin
+          .from('access_grants')
+          .update(updates)
+          .eq('id', existingGrant.id);
+      }
+
+      return { grantId: existingGrant.id };
+    }
+  }
+
+  const { data: grant, error: grantError } = await supabaseAdmin
+    .from('access_grants')
+    .insert({
+      ebook_id: null,
+      email,
+      source,
+      trx_id: trxId ?? null,
+      customer_name: customerName ?? null,
+      amount: typeof amount === 'number' ? amount : 0,
+    })
+    .select('id')
+    .single();
+
+  if (grantError || !grant) {
+    throw new Error(`Gagal mencatat transaksi: ${grantError?.message}`);
+  }
+
+  return { grantId: grant.id };
 }

@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { DEFAULT_APP_URL } from '@/lib/constants';
 import { sendMagicLinkEmail } from '@/lib/email';
-import { createGrantWithToken, findEbook } from '@/lib/grants';
+import {
+  createGrantWithToken,
+  findEbook,
+  recordNonWatermarkPurchase,
+} from '@/lib/grants';
 import { extractLynkDetails, verifyLynkSignature } from '@/lib/lynk';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -100,15 +104,22 @@ export async function POST(request: NextRequest) {
         DEFAULT_APP_URL;
 
       for (const item of targetItems) {
-        const foundEbook = await findEbook(item.title);
-        if (!foundEbook) {
-          continue;
-        }
-
         const itemAmount =
           Number(item.price) ||
           (targetItems.length === 1 ? Number(details.totals.grandTotal) : 0) ||
           0;
+
+        const foundEbook = await findEbook(item.title);
+        if (!foundEbook) {
+          await recordNonWatermarkPurchase({
+            email: details.customer.email,
+            customerName: details.customer.name,
+            source: 'lynk_webhook',
+            trxId: details.refId === 'unknown' ? undefined : details.refId,
+            amount: itemAmount,
+          });
+          continue;
+        }
 
         const grant = await createGrantWithToken({
           email: details.customer.email,
