@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AdminActions } from '@/components/admin-actions';
 import { EbookTable } from '@/components/ebook-table';
+import { GrantsTable } from '@/components/grants-table';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
@@ -318,102 +319,10 @@ export default async function AdminDashboardPage() {
 
         <EbookTable ebooks={ebooks || []} />
 
-        <section
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 14,
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '18px 24px',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                Hak Akses & Transaksi Terbaru
-              </h2>
-              <p style={{ margin: '2px 0 0 0', fontSize: 13, color: '#64748b' }}>
-                Daftar pembeli yang telah menerima lisensi dan tautan unduhan
-              </p>
-            </div>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '3px 10px',
-                borderRadius: 9999,
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
-              }}
-            >
-              {totalTransactions} Data
-            </span>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Penerima</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nama Pembeli</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nominal</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Waktu</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sumber</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ref Transaksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentGrants && recentGrants.length > 0 ? (
-                  recentGrants.map((grant) => (
-                    <tr key={grant.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{grant.email}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 13, color: '#334155' }}>{grant.customer_name || '-'}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 13, fontWeight: 700, color: Number(grant.amount) > 0 ? '#15803d' : '#64748b' }}>
-                        {formatCurrency(Number(grant.amount) || 0)}
-                      </td>
-                      <td style={{ padding: '16px 24px', fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>
-                        {formatDate(grant.created_at)}
-                      </td>
-                      <td style={{ padding: '16px 24px' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            fontFamily: 'ui-monospace, monospace',
-                            backgroundColor: '#f1f5f9',
-                            color: '#475569',
-                          }}
-                        >
-                          {grant.source}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 24px', fontSize: 12, color: '#64748b', fontFamily: 'ui-monospace, monospace' }}>
-                        {grant.trx_id || '-'}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '40px 24px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
-                      Belum ada transaksi atau hak akses tercatat.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <GrantsTable
+          grants={recentGrants || []}
+          totalCount={totalTransactions}
+        />
       </main>
     </div>
   );
