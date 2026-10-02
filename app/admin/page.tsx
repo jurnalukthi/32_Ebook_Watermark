@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { AdminActions } from '@/components/admin-actions';
+import { EbookTable } from '@/components/ebook-table';
 import { ADMIN_EMAIL } from '@/lib/constants';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
@@ -315,105 +316,7 @@ export default async function AdminDashboardPage() {
           }
         />
 
-        <section
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 14,
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-            marginBottom: 32,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              padding: '18px 24px',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                Daftar E-Book Master
-              </h2>
-              <p style={{ margin: '2px 0 0 0', fontSize: 13, color: '#64748b' }}>
-                Master dokumen PDF sumber watermarking dinamis
-              </p>
-            </div>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '3px 10px',
-                borderRadius: 9999,
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
-              }}
-            >
-              {totalEbooks} Item
-            </span>
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Judul E-Book</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Storage Path</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ukuran File</th>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ebooks && ebooks.length > 0 ? (
-                  ebooks.map((ebook) => (
-                    <tr key={ebook.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '16px 24px', fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{ebook.title}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 13, color: '#475569', fontFamily: 'ui-monospace, monospace' }}>{ebook.file_path}</td>
-                      <td style={{ padding: '16px 24px', fontSize: 13, color: '#64748b' }}>
-                        {ebook.file_size ? `${(ebook.file_size / 1024).toFixed(1)} KB` : 'Belum dihitung'}
-                      </td>
-                      <td style={{ padding: '16px 24px' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            padding: '3px 10px',
-                            borderRadius: 9999,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            backgroundColor: ebook.is_active ? '#ecfdf5' : '#f1f5f9',
-                            color: ebook.is_active ? '#15803d' : '#64748b',
-                            border: `1px solid ${ebook.is_active ? '#bbf7d0' : '#e2e8f0'}`,
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: 9999,
-                              backgroundColor: ebook.is_active ? '#22c55e' : '#94a3b8',
-                            }}
-                          />
-                          {ebook.is_active ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '40px 24px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
-                      Belum ada file master e-book terdaftar.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <EbookTable ebooks={ebooks || []} />
 
         <section
           style={{
